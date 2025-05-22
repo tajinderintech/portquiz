@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CompTIA N10-009 Port Matching Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        .game-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .service-item {
+            background-color: #3498db;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            min-height: 90px;
+            position: relative;
+        }
+        .service-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .service-description {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        .drop-zone {
+            background-color: #ecf0f1;
+            border: 2px dashed #bdc3c7;
+            min-height: 45px;
+            min-width: 60px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .drop-zone.drag-over {
+            background-color: #d6eaf8;
+            transform: scale(1.02);
+        }
+        .drop-zone.has-port {
+            border-style: solid;
+        }
+        .ports {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 25px 0;
+            justify-content: center;
+        }
+        .port {
+            background-color: #2ecc71;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 6px;
+            cursor: grab;
+            user-select: none;
+            font-weight: bold;
+            font-size: 15px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        .port:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 8px rgba(0,0,0,0.15);
+        }
+        .port.dragging {
+            opacity: 0.7;
+            transform: scale(1.1);
+        }
+        .port.wrong {
+            background-color: #e74c3c;
+        }
+        .port.correct {
+            background-color: #27ae60;
+            animation: pulse 0.5s;
+        }
+        .controls {
+            margin-top: 30px;
+            text-align: center;
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background-color: #1a252f;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        #reset {
+            background-color: #e67e22;
+        }
+        #reset:hover {
+            background-color: #d35400;
+        }
+        .score-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .score {
+            display: inline-block;
+            background-color: #2c3e50;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .correct-answer-marker {
+            position: absolute;
+            right: -10px;
+            top: -10px;
+            background-color: #27ae60;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            display: none;
+        }
+        .show-answer .correct-answer-marker {
+            display: flex;
+        }
+        .feedback {
+            text-align: center;
+            margin-top: 15px;
+            min-height: 24px;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .feedback.correct {
+            background-color: #d5f5e3;
+            color: #27ae60;
+        }
+        .feedback.incorrect {
+            background-color: #fadbd8;
+            color: #e74c3c;
+        }
+        .answer-feedback {
+            margin-top: 10px;
+            font-size: 14px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .correct-feedback {
+            color: #27ae60;
+        }
+        .incorrect-feedback {
+            color: #e74c3c;
+        }
+        .dustbin {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 40px;
+            height: 50px;
+            background-color: #e74c3c;
+            border-radius: 0 0 3px 3px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+        .dustbin:hover {
+            transform: scale(1.1);
+        }
+        .dustbin-lid {
+            width: 45px;
+            height: 10px;
+            background-color: #c0392b;
+            border-radius: 3px 3px 0 0;
+            position: absolute;
+            top: -10px;
+            left: -2.5px;
+            transition: transform 0.3s;
+        }
+        .dustbin.drag-over {
+            background-color: #c0392b;
+        }
+        .dustbin.drag-over .dustbin-lid {
+            transform: rotate(-20deg);
+            transform-origin: left center;
+        }
+        .dustbin-icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+        .dustbin-label {
+            font-size: 8px;
+            font-weight: bold;
+        }
+        .input-mode {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .mode-switch {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .mode-switch:hover {
+            background-color: #2980b9;
+        }
+        .mode-switch.active {
+            background-color: #2c3e50;
+        }
+        .port-input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 15px;
+            margin-left: 10px;
+        }
+        .input-container {
+            display: none;
+            margin-top: 10px;
+        }
+        .input-container.visible {
+            display: flex;
+            align-items: center;
+        }
+        .input-label {
+            margin-right: 5px;
+            font-size: 14px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            color: #7f8c8d;
+            font-size: 14px;
+            border-top: 1px solid #ecf0f1;
+        }
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>CompTIA Network+ N10-009 Port Matching Game</h1>
+    <div class="subtitle">Match port numbers to their corresponding protocols/services</div>
+    
+    <div class="game-container">
+        <div class="dustbin" id="dustbin">
+            <div class="dustbin-lid"></div>
+            <div class="dustbin-icon">🗑️</div>
+            <div class="dustbin-label">Remove</div>
+        </div>
+        
+        <div class="input-mode">
+            <button class="mode-switch active" id="drag-mode">Drag Mode</button>
+            <button class="mode-switch" id="input-mode">Input Mode</button>
+        </div>
+        
+        <div class="score-container">
+            <div class="score">Score: <span id="score">0</span></div>
+        </div>
+        
+        <div class="feedback" id="feedback"></div>
+        <div class="answer-feedback" id="answer-feedback"></div>
+        
+        <div class="services" id="services-container">
+            <!-- Service items will be inserted here by JavaScript -->
+        </div>
+        
+        <div class="ports" id="ports-container">
+            <!-- Port options will be inserted here by JavaScript -->
+        </div>
+        
+        <div class="controls">
+            <button id="new-round">New Round</button>
+            <button id="reset">Reset Answers</button>
+            <button id="check-answers">Check Answers</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        Created by <a href="https://github.com/justtajinder" target="_blank">justtajinder</a> | 
+        CompTIA Network+ N10-009 Port Matching Game
+    </div>
+
+    <script>
+        // Comprehensive N10-009 Port Data
+        const portData = [
+            // Email Protocols
+            { service: "SMTP (Email Send)", port: "25", protocol: "tcp", description: "Simple Mail Transfer Protocol (unencrypted)" },
+            { service: "SMTP (Secure Submission)", port: "587", protocol: "tcp", description: "With STARTTLS encryption" },
+            { service: "SMTPS", port: "465", protocol: "tcp", description: "Implicit SSL/TLS for email sending" },
+            { service: "POP3 (Email Receive)", port: "110", protocol: "tcp", description: "Post Office Protocol v3 (unencrypted)" },
+            { service: "POP3S", port: "995", protocol: "tcp", description: "Secure POP3 with SSL/TLS" },
+            { service: "IMAP (Email Sync)", port: "143", protocol: "tcp", description: "Internet Message Access Protocol (unencrypted)" },
+            { service: "IMAPS", port: "993", protocol: "tcp", description: "Secure IMAP with SSL/TLS" },
+            
+            // File Transfer
+            { service: "FTP (Control)", port: "21", protocol: "tcp", description: "File Transfer Protocol commands" },
+            { service: "FTP (Data)", port: "20", protocol: "tcp", description: "Active mode data transfer" },
+            { service: "SFTP", port: "22", protocol: "tcp", description: "SSH File Transfer Protocol" },
+            { service: "FTPS", port: "989/990", protocol: "tcp", description: "FTP over SSL/TLS" },
+            { service: "TFTP", port: "69", protocol: "udp", description: "Trivial File Transfer Protocol" },
+            
+            // Web Protocols
+            { service: "HTTP", port: "80", protocol: "tcp", description: "Hypertext Transfer Protocol" },
+            { service: "HTTPS", port: "443", protocol: "tcp", description: "HTTP Secure (SSL/TLS)" },
+            
+            // Remote Access
+            { service: "SSH", port: "22", protocol: "tcp", description: "Secure Shell" },
+            { service: "Telnet", port: "23", protocol: "tcp", description: "Unencrypted remote access" },
+            { service: "RDP", port: "3389", protocol: "tcp", description: "Remote Desktop Protocol" },
+            
+            // Network Services
+            { service: "DNS", port: "53", protocol: "both", description: "Domain Name System" },
+            { service: "DHCP (Server)", port: "67", protocol: "udp", description: "Dynamic Host Configuration" },
+            { service: "DHCP (Client)", port: "68", protocol: "udp", description: "Dynamic Host Configuration" },
+            { service: "NTP", port: "123", protocol: "udp", description: "Network Time Protocol" },
+            { service: "SNMP", port: "161", protocol: "udp", description: "Simple Network Management Protocol" },
+            { service: "SNMP Trap", port: "162", protocol: "udp", description: "SNMP notifications" },
+            { service: "Syslog", port: "514", protocol: "udp", description: "System logging" },
+            
+            // Directory Services
+            { service: "LDAP", port: "389", protocol: "both", description: "Lightweight Directory Access Protocol" },
+            { service: "LDAPS", port: "636", protocol: "tcp", description: "Secure LDAP" },
+            { service: "Kerberos", port: "88", protocol: "both", description: "Authentication protocol" },
+            
+            // Database
+            { service: "MySQL", port: "3306", protocol: "tcp", description: "MySQL database" },
+            { service: "MS SQL", port: "1433", protocol: "tcp", description: "Microsoft SQL Server" },
+            
+            // Windows Networking
+            { service: "SMB", port: "445", protocol: "tcp", description: "Server Message Block" }
+        ];
+
+        let currentRound = [];
+        let score = 0;
+        let draggedPort = null;
+        let currentMode = 'drag'; // 'drag' or 'input'
+
+        // Initialize the game
+        document.addEventListener('DOMContentLoaded', () => {
+            setupNewRound();
+            setupEventListeners();
+            setupModeSwitcher();
+        });
+
+        function setupNewRound() {
+            // Clear previous round
+            document.getElementById('services-container').innerHTML = '';
+            document.getElementById('ports-container').innerHTML = '';
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('feedback').className = 'feedback';
+            document.getElementById('answer-feedback').textContent = '';
+            document.getElementById('services-container').classList.remove('show-answer');
+
+            // Select 6 random services
+            currentRound = [];
+            const shuffled = [...portData].sort(() => 0.5 - Math.random());
+            currentRound = shuffled.slice(0, 6);
+
+            // Create service items with separate drop zones
+            currentRound.forEach((item, index) => {
+                const serviceItem = document.createElement('div');
+                serviceItem.className = 'service-item';
+                serviceItem.dataset.index = index;
+                serviceItem.dataset.correctPort = item.port.includes('/') ? item.port.split('/')[0] : item.port;
+                
+                const serviceName = document.createElement('div');
+                serviceName.className = 'service-name';
+                serviceName.textContent = item.service;
+
+                const serviceDesc = document.createElement('div');
+                serviceDesc.className = 'service-description';
+                serviceDesc.textContent = item.description;
+
+                const dropZone = document.createElement('div');
+                dropZone.className = 'drop-zone';
+                dropZone.dataset.index = index;
+                dropZone.addEventListener('dragover', handleDragOver);
+                dropZone.addEventListener('drop', handleDrop);
+                dropZone.addEventListener('dragenter', handleDragEnter);
+                dropZone.addEventListener('dragleave', handleDragLeave);
+
+                const correctMarker = document.createElement('div');
+                correctMarker.className = 'correct-answer-marker';
+                correctMarker.textContent = '✓';
+                correctMarker.title = 'Correct answer: ' + (item.port.includes('/') ? item.port.split('/')[0] : item.port);
+
+                // Create input container for input mode
+                const inputContainer = document.createElement('div');
+                inputContainer.className = 'input-container';
+                inputContainer.innerHTML = `
+                    <span class="input-label">Port:</span>
+                    <input type="text" class="port-input" data-index="${index}" maxlength="5">
+                `;
+
+                dropZone.appendChild(correctMarker);
+                serviceItem.appendChild(serviceName);
+                serviceItem.appendChild(serviceDesc);
+                serviceItem.appendChild(dropZone);
+                serviceItem.appendChild(inputContainer);
+                document.getElementById('services-container').appendChild(serviceItem);
+            });
+
+            // Get all correct ports for this round
+            const correctPorts = currentRound.map(item => 
+                item.port.includes('/') ? item.port.split('/')[0] : item.port
+            );
+
+            // Get 3 incorrect ports (not in correctPorts)
+            const incorrectPorts = shuffled
+                .filter(item => {
+                    const port = item.port.includes('/') ? item.port.split('/')[0] : item.port;
+                    return !correctPorts.includes(port);
+                })
+                .slice(0, 3)
+                .map(item => item.port.includes('/') ? item.port.split('/')[0] : item.port);
+
+            // Combine and shuffle all ports for this round (6 correct + 3 incorrect)
+            const allPorts = [...correctPorts, ...incorrectPorts].sort(() => 0.5 - Math.random());
+
+            // Create port elements (for drag mode)
+            allPorts.forEach(port => {
+                const portElement = document.createElement('div');
+                portElement.className = 'port';
+                portElement.textContent = port;
+                portElement.draggable = true;
+                portElement.dataset.port = port;
+                portElement.addEventListener('dragstart', handleDragStart);
+                portElement.addEventListener('dragend', handleDragEnd);
+                document.getElementById('ports-container').appendChild(portElement);
+            });
+
+            // Set up input mode visibility
+            updateModeVisibility();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('new-round').addEventListener('click', setupNewRound);
+            document.getElementById('check-answers').addEventListener('click', checkAnswers);
+            document.getElementById('reset').addEventListener('click', resetAnswers);
+            
+            // Dustbin event listeners
+            const dustbin = document.getElementById('dustbin');
+            dustbin.addEventListener('dragover', handleDustbinDragOver);
+            dustbin.addEventListener('dragleave', handleDustbinDragLeave);
+            dustbin.addEventListener('drop', handleDustbinDrop);
+        }
+
+        function setupModeSwitcher() {
+            const dragModeBtn = document.getElementById('drag-mode');
+            const inputModeBtn = document.getElementById('input-mode');
+            
+            dragModeBtn.addEventListener('click', () => {
+                currentMode = 'drag';
+                dragModeBtn.classList.add('active');
+                inputModeBtn.classList.remove('active');
+                updateModeVisibility();
+            });
+            
+            inputModeBtn.addEventListener('click', () => {
+                currentMode = 'input';
+                inputModeBtn.classList.add('active');
+                dragModeBtn.classList.remove('active');
+                updateModeVisibility();
+            });
+        }
+
+        function updateModeVisibility() {
+            const portsContainer = document.getElementById('ports-container');
+            const inputContainers = document.querySelectorAll('.input-container');
+            
+            if (currentMode === 'drag') {
+                portsContainer.style.display = 'flex';
+                inputContainers.forEach(container => {
+                    container.classList.remove('visible');
+                });
+            } else {
+                portsContainer.style.display = 'none';
+                inputContainers.forEach(container => {
+                    container.classList.add('visible');
+                });
+            }
+        }
+
+        function resetAnswers() {
+            const dropZones = document.querySelectorAll('.drop-zone');
+            const inputFields = document.querySelectorAll('.port-input');
+            
+            // Clear all dropped ports
+            dropZones.forEach(zone => {
+                const port = zone.querySelector('.port');
+                if (port) {
+                    document.getElementById('ports-container').appendChild(port);
+                    zone.classList.remove('has-port');
+                }
+            });
+            
+            // Clear all input fields
+            inputFields.forEach(input => {
+                input.value = '';
+                input.style.backgroundColor = '';
+            });
+            
+            // Reset feedback
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('feedback').className = 'feedback';
+            document.getElementById('answer-feedback').textContent = '';
+            document.getElementById('services-container').classList.remove('show-answer');
+            
+            // Re-enable dragging
+            const ports = document.querySelectorAll('.port');
+            ports.forEach(port => {
+                port.classList.remove('correct', 'wrong');
+                port.draggable = true;
+            });
+        }
+
+        function handleDragStart(e) {
+            if (currentMode !== 'drag') return;
+            draggedPort = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.port);
+        }
+
+        function handleDragEnd(e) {
+            if (currentMode !== 'drag') return;
+            e.target.classList.remove('dragging');
+            document.getElementById('dustbin').classList.remove('drag-over');
+        }
+
+        function handleDragOver(e) {
+            if (currentMode !== 'drag') return;
+            e.preventDefault();
+        }
+
+        function handleDragEnter(e) {
+            if (currentMode !== 'drag') return;
+            e.preventDefault();
+            e.target.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            if (currentMode !== 'drag') return;
+            e.target.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (currentMode !== 'drag') return;
+            e.preventDefault();
+            e.target.classList.remove('drag-over');
+
+            const dropZone = e.target;
+            const port = draggedPort.dataset.port;
+
+            // Remove any existing port in this drop zone
+            const existingPort = dropZone.querySelector('.port');
+            if (existingPort) {
+                document.getElementById('ports-container').appendChild(existingPort);
+            }
+
+            // Add the new port
+            dropZone.appendChild(draggedPort);
+            dropZone.classList.add('has-port');
+        }
+
+        function handleDustbinDragOver(e) {
+            if (currentMode !== 'drag') return;
+            e.preventDefault();
+            e.target.classList.add('drag-over');
+        }
+
+        function handleDustbinDragLeave(e) {
+            if (currentMode !== 'drag') return;
+            e.target.classList.remove('drag-over');
+        }
+
+        function handleDustbinDrop(e) {
+            if (currentMode !== 'drag') return;
+            e.preventDefault();
+            const dustbin = e.target;
+            dustbin.classList.remove('drag-over');
+            
+            if (draggedPort) {
+                // Return the port to the options container
+                document.getElementById('ports-container').appendChild(draggedPort);
+                
+                // Remove from any drop zone it might have been in
+                const dropZones = document.querySelectorAll('.drop-zone.has-port');
+                dropZones.forEach(zone => {
+                    if (zone.contains(draggedPort)) {
+                        zone.classList.remove('has-port');
+                    }
+                });
+            }
+        }
+
+        function checkAnswers() {
+            let correctCount = 0;
+            const feedback = document.getElementById('feedback');
+            const answerFeedback = document.getElementById('answer-feedback');
+            let feedbackHTML = '';
+
+            // Show all correct answers
+            document.getElementById('services-container').classList.add('show-answer');
+
+            if (currentMode === 'drag') {
+                const dropZones = document.querySelectorAll('.drop-zone');
+                
+                // Check each answer in drag mode
+                dropZones.forEach(zone => {
+                    const serviceItem = zone.parentElement;
+                    const serviceName = serviceItem.querySelector('.service-name').textContent;
+                    const correctPort = serviceItem.dataset.correctPort;
+                    const portElement = zone.querySelector('.port');
+
+                    if (portElement) {
+                        if (portElement.dataset.port === correctPort) {
+                            portElement.classList.add('correct');
+                            correctCount++;
+                            feedbackHTML += `<div class="correct-feedback">✓ Correct: ${serviceName} uses port ${correctPort}</div>`;
+                        } else {
+                            portElement.classList.add('wrong');
+                            feedbackHTML += `<div class="incorrect-feedback">✗ Wrong: ${serviceName} should be port ${correctPort} (you selected ${portElement.dataset.port})</div>`;
+                        }
+                    } else {
+                        feedbackHTML += `<div class="incorrect-feedback">✗ Missing: ${serviceName} should be port ${correctPort}</div>`;
+                    }
+                });
+            } else {
+                // Check each answer in input mode
+                const inputFields = document.querySelectorAll('.port-input');
+                
+                inputFields.forEach(input => {
+                    const index = input.dataset.index;
+                    const serviceItem = document.querySelector(`.service-item[data-index="${index}"]`);
+                    const serviceName = serviceItem.querySelector('.service-name').textContent;
+                    const correctPort = serviceItem.dataset.correctPort;
+                    const userInput = input.value.trim();
+
+                    if (userInput === correctPort) {
+                        input.style.backgroundColor = '#d5f5e3';
+                        correctCount++;
+                        feedbackHTML += `<div class="correct-feedback">✓ Correct: ${serviceName} uses port ${correctPort}</div>`;
+                    } else if (userInput) {
+                        input.style.backgroundColor = '#fadbd8';
+                        feedbackHTML += `<div class="incorrect-feedback">✗ Wrong: ${serviceName} should be port ${correctPort} (you entered ${userInput})</div>`;
+                    } else {
+                        feedbackHTML += `<div class="incorrect-feedback">✗ Missing: ${serviceName} should be port ${correctPort}</div>`;
+                    }
+                });
+            }
+
+            // Update score and feedback
+            if (correctCount === currentRound.length) {
+                score++;
+                document.getElementById('score').textContent = score;
+                feedback.textContent = "Perfect! All answers correct!";
+                feedback.className = "feedback correct";
+            } else {
+                feedback.textContent = `You got ${correctCount} out of ${currentRound.length} correct.`;
+                feedback.className = "feedback incorrect";
+            }
+
+            answerFeedback.innerHTML = feedbackHTML;
+
+            // Disable dragging after checking
+            const ports = document.querySelectorAll('.port');
+            ports.forEach(port => {
+                port.draggable = false;
+            });
+        }
+    </script>
+</body>
+</html>
